@@ -1,0 +1,40 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.4, pytest-8.4.1, pluggy-1.6.0
+rootdir: /Users/razikus/PycharmProjects/BrandbullSmart
+plugins: anyio-4.10.0
+collected 1 item
+
+tests/test_all.py F                                                      [100%]
+
+=================================== FAILURES ===================================
+________________________ test_login_with_email_password ________________________
+
+    def test_login_with_email_password():
+        supabase_url = "https://zjqohfcskeirutsezxua.supabase.co"
+        """Login using email and password"""
+        auth_url = f"{supabase_url}/auth/v1/token?grant_type=password"
+    
+        headers = {
+            "Content-Type": "application/json",
+            "apikey": "sb_publishable_dfMaPN93kuterw73mpxcNQ_IajY32YM"
+        }
+    
+        data = {
+            "email": "adam.razniewski@gmail.com",
+            "password": "adam4541"
+        }
+    
+        response = requests.post(auth_url, headers=headers, json=data)
+        assert response.status_code == 200
+        auth_data = response.json()
+    
+        print("Login successful", auth_data["access_token"])
+>       assert False == True
+E       assert False == True
+
+tests/test_all.py:25: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Login successful eyJhbGciOiJFUzI1NiIsImtpZCI6ImQwNzdmZDk0LWUwZDUtNDA2Mi04MDA0LTNiYTA4ZDM3ZjgxNSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3pqcW9oZmNza2VpcnV0c2V6eHVhLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJjNDQyMzMyMy0zZmY2LTRjYTUtYjU1Yy0xNmE5NWNiMjA5NzkiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU2MTIxNjI1LCJpYXQiOjE3NTYxMTgwMjUsImVtYWlsIjoiYWRhbS5yYXpuaWV3c2tpQGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzU2MTE4MDI1fV0sInNlc3Npb25faWQiOiI5N2NkM2I0NS1kNDE1LTRiMTQtYjdhNC01Y2MwMWZhN2UwYTgiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.qkvis2C2IVEWgrz_IHfReR9tKLy4OY0dqa98R0VMh2uw-wp72HwkUI23E2t3BdJIt-pjZAfHbyFqPW2Pql85gQ
+=========================== short test summary info ============================
+FAILED tests/test_all.py::test_login_with_email_password - assert False == True
+============================== 1 failed in 0.30s ===============================
