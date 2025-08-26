@@ -14,6 +14,7 @@ export interface ListReturnItem {
   created_at: string;
   internal_uuid: string;
   product_id: string;
+  name: string | null;
 }
 
 interface DeviceApiValidationError {

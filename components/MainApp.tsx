@@ -617,10 +617,12 @@ function DeviceSettingsScreen({ route }: any) {
     </ScrollView>
   );
 }
-
-// Screen: Twoje urządzenia
 function DevicesScreen({ navigation }: any) {
   const [loadedDevices, setLoadedDevices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+  const { session } = useAuth();
+
   const handleAddDevice = () => {
     navigation.navigate('AddDevice');
   };
@@ -629,13 +631,50 @@ function DevicesScreen({ navigation }: any) {
     navigation.navigate('DeviceDetails', { device });
   };
 
-  // Mock data - czujniki dymu
-  const mockDevices = [
-    { id: 1, name: 'Czujnik dymu - Kuchnia', status: 'online', lastActivity: '2 min temu' },
-    { id: 2, name: 'Czujnik dymu - Salon', status: 'online', lastActivity: '5 min temu' },
-    { id: 3, name: 'Czujnik dymu - Sypialnia', status: 'offline', lastActivity: '2 godz. temu' },
-    { id: 4, name: 'Czujnik temperatury - Garaż', status: 'online', lastActivity: '1 min temu' },
-  ];
+  // Fetch devices from API
+  const fetchDevices = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      if (!session) {
+        throw new Error('Brak sesji użytkownika');
+      }
+
+      const apiClient = createApiClient(API_BASE_URL, session);
+      const apiDevices = await apiClient.listDevices();
+      
+      // Transform API response to match UI expectations
+      const transformedDevices = apiDevices.map((apiDevice, index) => ({
+        id: apiDevice.internal_uuid,
+        name: apiDevice.name ? apiDevice.name : `Czujnik ${apiDevice.internal_uuid.slice(-4)}`,
+        status: 'online', // Default status since API doesn't provide this
+        lastActivity: 'Nieznana', // Default since API doesn't provide this
+        productId: apiDevice.product_id,
+        uuid: apiDevice.internal_uuid,
+        createdAt: apiDevice.created_at,
+      }));
+
+      setLoadedDevices(transformedDevices);
+    } catch (err) {
+      console.error('Failed to fetch devices:', err);
+      setError(err instanceof Error ? err.message : 'Nie udało się pobrać urządzeń');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load devices when component mounts or session changes
+  useEffect(() => {
+    if (session) {
+      fetchDevices();
+    }
+  }, [session]);
+
+  // Refresh function
+  const handleRefresh = () => {
+    fetchDevices();
+  };
 
   return (
     <View style={styles.container}>
@@ -655,30 +694,63 @@ function DevicesScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* Devices List */}
-      <View style={styles.devicesContainer}>
-        {mockDevices.map((device) => (
-          <TouchableOpacity 
-            key={device.id} 
-            style={styles.deviceCard}
-            onPress={() => handleDevicePress(device)}
-          >
-            <View style={styles.deviceInfo}>
-              <View style={styles.deviceHeader}>
-                <Text style={styles.deviceName}>{device.name}</Text>
-              </View>
-              <Text style={styles.deviceActivity}>Ostatnia aktywność: {device.lastActivity}</Text>
-            </View>
-            <View style={styles.deviceIcon}>
-              <AlarmSmoke size={24} color="#ff4444" />
-            </View>
-            <ChevronRight size={20} color="#666666" />
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Loading State */}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#ff4444" />
+          <Text style={styles.loadingText}>Ładowanie urządzeń...</Text>
+        </View>
+      )}
 
-      {/* Empty State (if no devices) */}
-      {mockDevices.length === 0 && (
+      {/* Error State */}
+      {error && !loading && (
+        <View style={styles.errorContainer}>
+          <AlertTriangle size={48} color="#ff4444" />
+          <Text style={styles.errorTitle}>Błąd ładowania</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Spróbuj ponownie</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Devices List */}
+      {!loading && !error && loadedDevices.length > 0 && (
+        <ScrollView style={styles.devicesScrollContainer}>
+          <View style={styles.devicesContainer}>
+            {loadedDevices.map((device) => (
+              <TouchableOpacity 
+                key={device.uuid} // Use UUID as key for uniqueness
+                style={styles.deviceCard}
+                onPress={() => handleDevicePress(device)}
+              >
+                <View style={styles.deviceInfo}>
+                  <View style={styles.deviceHeader}>
+                    <Text style={styles.deviceName}>{device.name}</Text>
+                    <View style={[
+                      styles.statusBadge, 
+                      device.status === 'online' ? styles.statusOnline : styles.statusOffline
+                    ]}>
+                      <Text style={styles.statusText}>{device.status}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.deviceActivity}>
+                    Dodano: {new Date(device.createdAt).toLocaleDateString('pl-PL')}
+                  </Text>
+                  <Text style={styles.deviceId}>ID: {device.uuid.substring(0,8)}</Text>
+                </View>
+                <View style={styles.deviceIcon}>
+                  <AlarmSmoke size={24} color="#ff4444" />
+                </View>
+                <ChevronRight size={20} color="#666666" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && loadedDevices.length === 0 && (
         <View style={styles.emptyState}>
           <Smartphone size={64} color="#666666" style={styles.emptyIcon} />
           <Text style={styles.emptyTitle}>Brak urządzeń</Text>
@@ -838,6 +910,76 @@ export default function MainApp() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    color: '#cccccc',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#cccccc',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#ff4444',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  statusOnline: {
+    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+    borderWidth: 1,
+    borderColor: '#22c55e',
+  },
+  statusOffline: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  deviceId: {
+    fontSize: 12,
+    color: '#888888',
+    marginTop: 2,
+  },
   container: {
     flex: 1,
     backgroundColor: '#000000',

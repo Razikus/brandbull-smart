@@ -34,6 +34,7 @@ class ListReturnItem(BaseModel):
     created_at: datetime
     internal_uuid: str
     product_id: str
+    name: Optional[str] = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -243,7 +244,8 @@ async def list_devices(current_user: str = Depends(get_authenticated_user)) -> L
         toRet.append(ListReturnItem(
             created_at=parsedTime,
             internal_uuid=item["uuid"],
-            product_id=item["internal_product_id"]
+            product_id=item["internal_product_id"],
+            name=item.get("name", None)
         ))
     return toRet
 # @app.get("/protected")

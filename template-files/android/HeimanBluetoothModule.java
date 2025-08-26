@@ -30,6 +30,7 @@ public class HeimanBluetoothModule extends ReactContextBaseJavaModule implements
         super(reactContext);
         this.reactContext = reactContext;
         LogUtil.setIsLogAble(true);
+        this.bluetoothSmartLink = new BluetoothSmartLink();
     }
 
     @Override
@@ -48,7 +49,6 @@ public class HeimanBluetoothModule extends ReactContextBaseJavaModule implements
                 return;
             }
 
-
             if (bluetoothSmartLink != null) {
                 try {
                     bluetoothSmartLink.stopConfig();
@@ -58,7 +58,6 @@ public class HeimanBluetoothModule extends ReactContextBaseJavaModule implements
                 }
             }
             
-            bluetoothSmartLink = new BluetoothSmartLink();
             bluetoothSmartLink.setActivity(currentActivity);
             bluetoothSmartLink.setOnDiscoverListener(this);
             
@@ -82,7 +81,6 @@ public class HeimanBluetoothModule extends ReactContextBaseJavaModule implements
             if (bluetoothSmartLink != null) {
                 bluetoothSmartLink.stopConfig();
                 bluetoothSmartLink.release();
-                bluetoothSmartLink = null;
             }
             
             promise.resolve("Discovery stopped successfully");
@@ -106,7 +104,6 @@ public class HeimanBluetoothModule extends ReactContextBaseJavaModule implements
             
             currentConfigPromise = promise;
             
-            bluetoothSmartLink = new BluetoothSmartLink();
             bluetoothSmartLink.setActivity(currentActivity);
             bluetoothSmartLink.setConfigCallback(this);
             
@@ -150,7 +147,6 @@ public class HeimanBluetoothModule extends ReactContextBaseJavaModule implements
             if (bluetoothSmartLink != null) {
                 bluetoothSmartLink.stopConfig();
                 bluetoothSmartLink.release();
-                bluetoothSmartLink = null;
             }
             
             if (currentConfigPromise != null) {
