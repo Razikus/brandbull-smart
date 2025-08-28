@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mqtt-config
+  namespace: default
+data:
+  APP_ID: "SB7sFDXHe3WQyF7k"
+  SECURE_KEY: "K2rDXbNbF3hfc3Z7RDXPmYHGm54b6fCD"
+  INTERNAL_SECRET: "v0T4mHtY22RahOye9Wfyg02HuPZIyyZd"
+  URL_TO_SEND: "http://bbsmart-api-service:80/internal/event"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt-service
+  namespace: default
+  labels:
+    app: mqtt-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt-service
+  template:
+    metadata:
+      labels:
+        app: mqtt-service
+    spec:
+      containers:
+      - name: mqtt-service
+        image: registry.gitlab.com/razniewski/bbsmart:mqtt1.2
+        imagePullPolicy: Always
+        env:
+        - name: APP_ID
+          valueFrom:
+            configMapKeyRef:
+              name: mqtt-config
+              key: APP_ID
+        - name: SECURE_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: mqtt-config
+              key: SECURE_KEY
+        - name: INTERNAL_SECRET
+          valueFrom:
+            configMapKeyRef:
+              name: mqtt-config
+              key: INTERNAL_SECRET
+        - name: URL_TO_SEND
+          valueFrom:
+            configMapKeyRef:
+              name: mqtt-config
+              key: URL_TO_SEND
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        # Health checks
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+      restartPolicy: Always
+      # Image pull secrets if your registry requires authentication
+      imagePullSecrets:
+      - name: gitlab-registry-secret  # Create this if needed

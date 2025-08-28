@@ -32,6 +32,47 @@ class HeimanConnector:
                     device_loaded = await device_response.json()
                     return device_loaded
 
+    async def getDeviceEvents(self, userID: str, deviceID: str, pageSize: int = 5):
+        consolidatedHeaders = self.defaultHeaders.copy()
+        consolidatedHeaders["Tenant-Id"] = self.user_id_to_tenant_id(userID)
+        async with aiohttp.ClientSession() as session:
+                async with session.post(f"{self.spapiurl}/api-saas/device-instance/{deviceID}/logs", headers=consolidatedHeaders, json= {
+                    "pageIndex": 0,
+                    "pageSize": 5,
+                    "terms": [
+                        {
+                            "type": "or",
+                            "value": "event",
+                            "termType": "eq",
+                            "column": "type"
+                        }
+                    ]
+                }) as device_response:
+                    device_loaded = await device_response.json()
+                    return device_loaded
+
+    async def getDeviceProperties(self, userID: str, deviceID: str, pageSize: int = 5):
+        consolidatedHeaders = self.defaultHeaders.copy()
+        consolidatedHeaders["Tenant-Id"] = self.user_id_to_tenant_id(userID)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.spapiurl}/api-saas/device-instance/{deviceID}/logs",
+                                    headers=consolidatedHeaders, json={
+                        "pageIndex": 0,
+                        "pageSize": 5,
+                        "terms": [
+                            {
+                                "type": "and",
+                                "value": "reportProperty",
+                                "termType": "eq",
+                                "column": "type"
+                            }
+                        ]
+                    }) as device_response:
+                device_loaded = await device_response.json()
+                return device_loaded
+
+
+
     async def unbind(self, userID: str, deviceID: str):
         consolidatedHeaders = self.defaultHeaders.copy()
         consolidatedHeaders["Tenant-Id"] = self.user_id_to_tenant_id(userID)

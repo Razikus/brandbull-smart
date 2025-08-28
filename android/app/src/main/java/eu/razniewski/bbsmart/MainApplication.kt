@@ -15,9 +15,7 @@ import com.facebook.soloader.SoLoader
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
-
 import eu.razniewski.bbsmart.HeimanBluetoothPackage
-
 
 class MainApplication : Application(), ReactApplication {
 
