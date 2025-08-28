@@ -1,3 +1,4 @@
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import {
   View
 } from 'react-native';
 import { supabase } from '../lib/supabase';
+
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground. When this is added, you will continue to receive
@@ -33,6 +35,13 @@ export default function Auth() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+
+
+  React.useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '443024442162-ond2ppjh8504iqukgp8dsso6kl69sla3.apps.googleusercontent.com',
+    });
+  }, []);
 
   async function signInWithEmail() {
     setLoading(true)
@@ -59,18 +68,39 @@ export default function Auth() {
   }
 
   async function signInWithGoogle() {
-    setGoogleLoading(true)
+  setGoogleLoading(true);
+  
+  try {
+    await GoogleSignin.hasPlayServices();
+    const userInfo = await GoogleSignin.signIn();
     
-    // Mock Google sign in - simulate delay
-    setTimeout(() => {
-      Alert.alert(
-        'Google Sign In', 
-        'Logowanie przez Google będzie dostępne wkrótce!',
-        [{ text: 'OK' }]
-      )
-      setGoogleLoading(false)
-    }, 2000)
+    if (userInfo.data?.idToken) {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: userInfo.data.idToken,
+      });
+      
+      if (error) {
+        Alert.alert('Błąd logowania', error.message);
+      }
+    } else {
+      throw new Error('Brak tokenu ID!');
+    }
+  } catch (error) {
+    console.error(error);
+    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      // Użytkownik anulował
+    } else if (error.code === statusCodes.IN_PROGRESS) {
+      // Logowanie w toku
+    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      Alert.alert('Błąd', 'Google Play Services niedostępne');
+    } else {
+      Alert.alert('Błąd', 'Problem z logowaniem Google');
+    }
+  } finally {
+    setGoogleLoading(false);
   }
+}
 
   return (
     <KeyboardAvoidingView 

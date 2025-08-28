@@ -1,6 +1,6 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
-import { AlarmSmoke, AlertTriangle, ChevronRight, LogOut, MapPin, Plus, Save, Search, Settings, Smartphone, TestTube } from 'lucide-react-native';
+import { AlarmSmoke, AlertTriangle, ChevronRight, LogOut, Plus, Save, Search, Settings, Smartphone, TestTube } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,10 +17,11 @@ import {
   View
 } from 'react-native';
 import { useAuth } from './AuthContext';
+import DeviceDetailsScreen from './DeviceDetails';
 
-import { createApiClient } from '@/lib/client';
+import { createApiClient, eFlara } from '@/lib/client';
 import { PermissionsAndroid, Platform } from 'react-native';
-const API_BASE_URL = 'http://192.168.100.28:8000';
+const API_BASE_URL = 'https://bbsmart.smarthelmet.pl';
 
 const { HeimanBluetooth } = NativeModules;
 const heimanEmitter = new NativeEventEmitter(HeimanBluetooth);
@@ -171,13 +172,7 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
         deviceName: device.mac,
         productID: device.productId,
       };
-      console.log(registrationData)
       const response = await apiClient.registerDevice(registrationData);
-      console.log('Device registered successfully:', response);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('Device registered successfully:', registrationData);
       
       setConfigSteps(prev => [...prev, 'Urządzenie zarejestrowane pomyślnie!']);
       
@@ -315,7 +310,6 @@ function AddDeviceScreen({ navigation }: any) {
 
   useEffect(() => {
     const deviceListener = heimanEmitter.addListener('onDeviceDiscovered', (device: any) => {
-      console.log('Device discovered:', device);
       
       setFoundDevicesMap(prev => {
         if (prev.has(device.mac)) {
@@ -325,7 +319,7 @@ function AddDeviceScreen({ navigation }: any) {
         
         const newDevice = {
           id: device.mac,
-          name: `Czujnik ${device.productId.slice(-4)}`,
+          name: `Czujnik ${device.mac.slice(-4)}`,
           signal: 'Unknown',
           battery: 'Unknown', 
           type: 'smoke',
@@ -448,82 +442,115 @@ function AddDeviceScreen({ navigation }: any) {
   );
 }
 
-// Screen: Device Details
-function DeviceDetailsScreen({ route, navigation }: any) {
-  const { device } = route.params;
-  
-  const mockEvents = [
-    { id: 1, type: 'smoke', message: 'Wykryto dym', time: '14:30', date: '22.06.2025' },
-    { id: 2, type: 'test', message: 'Testowy alarm', time: '10:15', date: '21.06.2025' },
-    { id: 3, type: 'test', message: 'Test miesięczny', time: '09:00', date: '01.06.2025' },
-  ];
 
-  const getEventIcon = (type: string) => {
-    switch (type) {
-      case 'smoke':
-        return <AlertTriangle size={20} color="#ff4444" />;
-      case 'test':
-        return <TestTube size={20} color="#22c55e" />;
-      default:
-        return <AlarmSmoke size={20} color="#cccccc" />;
+interface DeviceParam {
+  uuid?: string;
+  id?: string;
+  name: string;
+}
+
+
+function DeviceSettingsScreen({ route }: any) {
+  const { device } = route.params;
+  const { session } = useAuth();
+  const [eFlaraEnabled, setEFlaraEnabled] = useState(false);
+  const [homeAddress, setHomeAddress] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>('');
+
+
+  const loadDeviceInfo = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      if (!session) {
+        throw new Error('Brak sesji użytkownika');
+      }
+
+      const apiClient = createApiClient(API_BASE_URL, session);
+      const deviceInfo = await apiClient.getDeviceInfo(device.uuid || device.id);
+      
+      // Load existing eFlara configuration
+      if (deviceInfo.eFlara) {
+        setEFlaraEnabled(deviceInfo.eFlara.enabled);
+        setHomeAddress(deviceInfo.eFlara.address || '');
+      }
+      
+    } catch (err) {
+      console.error('Failed to load device info:', err);
+      setError(err instanceof Error ? err.message : 'Nie udało się pobrać informacji o urządzeniu');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
-      {/* Device Header */}
-      <View style={styles.deviceDetailsHeader}>
-        <AlarmSmoke size={48} color="#ff4444" />
-        <Text style={styles.deviceDetailsName}>{device.name}</Text>
-        <Text style={styles.deviceDetailsActivity}>Ostatnia aktywność: {device.lastActivity}</Text>
-      </View>
+  useEffect(() => {
+    loadDeviceInfo();
+  }, [device.uuid, device.id, session]);
 
-      {/* Recent Events Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ostatnie zdarzenia</Text>
-        <View style={styles.eventsContainer}>
-          {mockEvents.map((event) => (
-            <View key={event.id} style={styles.eventCard}>
-              <View style={styles.eventIcon}>
-                {getEventIcon(event.type)}
-              </View>
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventMessage}>{event.message}</Text>
-                <Text style={styles.eventTime}>{event.date} o {event.time}</Text>
-              </View>
-            </View>
-          ))}
+  const handleSave = async () => {
+    if (eFlaraEnabled && !homeAddress.trim()) {
+      Alert.alert('Błąd', 'Podaj adres domowy aby włączyć eFlara');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      if (!session) {
+        throw new Error('Brak sesji użytkownika');
+      }
+
+      const config: eFlara = {
+        address: homeAddress.trim(),
+        enabled: eFlaraEnabled
+      };
+      
+      const apiClient = createApiClient(API_BASE_URL, session);
+      await apiClient.setEFlaraConfig(device.uuid || device.id, config);
+      
+      Alert.alert('Sukces', 'Ustawienia eFlara zostały zapisane');
+      
+    } catch (err) {
+      console.error('Failed to save eFlara config:', err);
+      Alert.alert(
+        'Błąd', 
+        err instanceof Error ? err.message : 'Nie udało się zapisać ustawień eFlara'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#ff4444" />
+          <Text style={styles.loadingText}>Ładowanie ustawień...</Text>
         </View>
       </View>
+    );
+  }
 
-      {/* Settings Section */}
-      <View style={styles.section}>
-        <TouchableOpacity 
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate('DeviceSettings', { device })}
-        >
-          <Settings size={24} color="#ffffff" />
-          <Text style={styles.settingsButtonText}>Ustawienia</Text>
-          <ChevronRight size={20} color="#cccccc" />
-        </TouchableOpacity>
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <View style={styles.errorContainer}>
+          <AlertTriangle size={48} color="#ff4444" />
+          <Text style={styles.errorTitle}>Błąd ładowania</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadDeviceInfo}>
+            <Text style={styles.retryButtonText}>Spróbuj ponownie</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </ScrollView>
-  );
-}
-
-// Screen: Device Settings
-function DeviceSettingsScreen({ route }: any) {
-  const { device } = route.params;
-  const [eFlaraEnabled, setEFlaraEnabled] = useState(false);
-  const [homeAddress, setHomeAddress] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
-
-  const handleSave = () => {
-    Alert.alert('Sukces', 'Ustawienia zostały zapisane');
-  };
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -549,6 +576,7 @@ function DeviceSettingsScreen({ route }: any) {
             onValueChange={setEFlaraEnabled}
             trackColor={{ false: '#333333', true: '#ff4444' }}
             thumbColor={eFlaraEnabled ? '#ffffff' : '#cccccc'}
+            disabled={saving}
           />
         </View>
 
@@ -564,59 +592,61 @@ function DeviceSettingsScreen({ route }: any) {
                 value={homeAddress}
                 onChangeText={setHomeAddress}
                 multiline
+                editable={!saving}
               />
-            </View>
-
-            {/* GPS Coordinates */}
-            <View style={styles.coordinatesContainer}>
-              <Text style={styles.inputLabel}>
-                <MapPin size={16} color="#cccccc" /> Współrzędne GPS
-              </Text>
-              <View style={styles.coordinatesRow}>
-                <View style={styles.coordinateInput}>
-                  <Text style={styles.coordinateLabel}>Szerokość</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="50.1234"
-                    placeholderTextColor="#666666"
-                    value={latitude}
-                    onChangeText={setLatitude}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={styles.coordinateInput}>
-                  <Text style={styles.coordinateLabel}>Długość</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="19.1234"
-                    placeholderTextColor="#666666"
-                    value={longitude}
-                    onChangeText={setLongitude}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
             </View>
 
             {/* eFlara Status */}
             <View style={styles.eFlaraStatus}>
-              <AlertTriangle size={20} color="#22c55e" />
+              <AlertTriangle size={20} color={homeAddress.trim() ? "#22c55e" : "#f59e0b"} />
               <Text style={styles.eFlaraStatusText}>
-                Komunikacja z eFlara została włączona. W razie wykrycia dymu - odpowiedni pierwsi ratownicy zostaną poinformowani.
+                {homeAddress.trim() 
+                  ? `eFlara włączona dla adresu: ${homeAddress.trim()}`
+                  : 'Podaj adres domowy aby aktywować eFlara'
+                }
               </Text>
             </View>
 
             {/* Save Button */}
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Save size={20} color="#ffffff" />
-              <Text style={styles.saveButtonText}>Zapisz ustawienia</Text>
+            <TouchableOpacity 
+              style={[styles.saveButton, saving && styles.disabledButton]} 
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Save size={20} color="#ffffff" />
+              )}
+              <Text style={styles.saveButtonText}>
+                {saving ? 'Zapisywanie...' : 'Zapisz ustawienia'}
+              </Text>
             </TouchableOpacity>
           </>
+        )}
+
+        {/* Save button when eFlara is disabled */}
+        {!eFlaraEnabled && (
+          <TouchableOpacity 
+            style={[styles.saveButton, saving && styles.disabledButton]} 
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Save size={20} color="#ffffff" />
+            )}
+            <Text style={styles.saveButtonText}>
+              {saving ? 'Zapisywanie...' : 'Zapisz ustawienia'}
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
     </ScrollView>
   );
 }
+
 function DevicesScreen({ navigation }: any) {
   const [loadedDevices, setLoadedDevices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -642,6 +672,8 @@ function DevicesScreen({ navigation }: any) {
       }
 
       const apiClient = createApiClient(API_BASE_URL, session);
+
+      console.log(session?.access_token)
       const apiDevices = await apiClient.listDevices();
       
       // Transform API response to match UI expectations

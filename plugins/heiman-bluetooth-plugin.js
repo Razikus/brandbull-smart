@@ -101,10 +101,7 @@ function withHeimanBluetooth(config) {
     return config;
   });
 
-  // 3. Dodaj package do MainApplication (skip for manual registration)
-  // We'll handle this in the dangerous mod section
-
-  // 4. Kopiuj pliki po prebuild
+  // 3. Modify MainApplication.kt to add package import and registration
   config = withDangerousMod(config, [
     'android',
     (config) => {
@@ -122,6 +119,14 @@ function withHeimanBluetooth(config) {
       );
       const targetLibsDir = path.join(platformProjectRoot, 'app/libs');
       const sourceAarPath = path.join(projectRoot, 'assets/hmLinkSdk-release.aar');
+      
+      // Path to MainApplication.kt
+      const mainApplicationPath = path.join(
+        platformProjectRoot,
+        'app/src/main/java',
+        packagePath,
+        'MainApplication.kt'
+      );
 
       try {
         // Stwórz katalogi
@@ -158,6 +163,55 @@ function withHeimanBluetooth(config) {
           });
         } else {
           console.warn('⚠️ Template directory not found at:', templateDir);
+        }
+
+        // Modify MainApplication.kt
+        if (fs.existsSync(mainApplicationPath)) {
+          let mainAppContent = fs.readFileSync(mainApplicationPath, 'utf8');
+          
+          // Add import if not exists
+          const importStatement = `import ${packageName}.HeimanBluetoothPackage`;
+          if (!mainAppContent.includes(importStatement)) {
+            // Find the last import statement and add after it
+            const lastImportMatch = mainAppContent.match(/import\s+[^\n]+\n(?=\s*\n)/g);
+            if (lastImportMatch) {
+              const lastImport = lastImportMatch[lastImportMatch.length - 1];
+              mainAppContent = mainAppContent.replace(
+                lastImport,
+                lastImport + importStatement + '\n'
+              );
+            } else {
+              // If no imports found, add after package declaration
+              mainAppContent = mainAppContent.replace(
+                /package\s+[^\n]+\n/,
+                `$&\n${importStatement}\n`
+              );
+            }
+          }
+          
+          // Add package registration if not exists
+          const packageRegistration = 'packages.add(HeimanBluetoothPackage())';
+          if (!mainAppContent.includes(packageRegistration)) {
+            // Find the packages.add comment and add after it
+            const addPackagePattern = /\/\/\s*packages\.add\(MyReactNativePackage\(\)\)/;
+            if (addPackagePattern.test(mainAppContent)) {
+              mainAppContent = mainAppContent.replace(
+                addPackagePattern,
+                `$&\n            ${packageRegistration}`
+              );
+            } else {
+              // Fallback: add before return packages
+              mainAppContent = mainAppContent.replace(
+                /return\s+packages/,
+                `            ${packageRegistration}\n            return packages`
+              );
+            }
+          }
+          
+          fs.writeFileSync(mainApplicationPath, mainAppContent);
+          console.log('✅ Updated MainApplication.kt with HeimanBluetoothPackage');
+        } else {
+          console.warn('⚠️ MainApplication.kt not found at:', mainApplicationPath);
         }
 
       } catch (error) {

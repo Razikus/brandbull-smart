@@ -1,5 +1,6 @@
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { NotificationService } from '../lib/notification';
 import { supabase } from '../lib/supabase';
 
 type AuthContextType = {
@@ -7,6 +8,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  registerNotifications: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -14,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signOut: async () => {},
+  registerNotifications: async () => false,
 });
 
 export const useAuth = () => {
@@ -33,12 +36,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const registerNotificationForSession = async (session: Session | null): Promise<boolean> => {
+    if (!session) return false;
+
+    const notificationService = NotificationService.getInstance();
+    const success = await notificationService.registerTokenWithBackend(session);
+    if (success) {
+      console.log('Notification registered successfully');
+    } else {
+      console.log('Failed to register notification');
+    }
+    return success;
+  };
+
+  const registerNotifications = async (): Promise<boolean> => {
+  try {
+    const notificationService = NotificationService.getInstance();
+    const success = await notificationService.registerTokenWithBackend(session);
+    
+    if (success) {
+      console.log('Notifications registered successfully');
+    } else {
+      console.log('Failed to register notifications');
+    }
+    
+    return success;
+  } catch (error) {
+    console.error('Error registering notifications:', error);
+    return false;
+  }
+};
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session) {
+        registerNotificationForSession(session);
+      }
     });
 
     // Listen for auth changes
@@ -48,6 +86,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        if (event === 'SIGNED_IN' && session) {
+          await registerNotificationForSession(session);
+        }
+
       }
     );
 
@@ -65,6 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     loading,
     signOut,
+    registerNotifications
   };
 
   return (

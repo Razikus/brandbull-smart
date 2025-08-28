@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "bb-smart",
+    "name": "Brandbull SMART",
     "slug": "bb-smart",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/brand.png",
+    "icon": "./assets/logo.png",
     "scheme": "bbsmart",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,9 +14,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/brand.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#000000"
       },
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "package": "eu.razniewski.bbsmart"
     },
@@ -45,10 +46,36 @@
           "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.443024442162-41n791gncnn4j0bbpi05jub6bd000rdh"
+        }
+      ],
+
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notif.png",
+          "color": "#c22218",
+          "defaultChannel": "default",
+          "sounds": [
+            "./assets/dym.wav",
+            "./assets/ratownik.wav"
+          ],
+          "enableBackgroundRemoteNotifications": false
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9ed84c7e-cc28-407c-bf83-d3081299a547"
+      }
     }
   }
 }
