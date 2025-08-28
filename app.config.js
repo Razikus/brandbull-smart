@@ -1,4 +1,4 @@
-{
+export default {
   "expo": {
     "name": "Brandbull SMART",
     "slug": "bb-smart",
@@ -17,7 +17,7 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#000000"
       },
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
       "edgeToEdgeEnabled": true,
       "package": "eu.razniewski.bbsmart"
     },
