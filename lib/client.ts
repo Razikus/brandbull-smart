@@ -10,6 +10,11 @@ export interface DeviceUnRegistrationRequest {
   deviceUUID: string;
 }
 
+
+export interface DeviceRenameRequest {
+  name: string;
+}
+
 export interface ListReturnItem {
   created_at: string;
   internal_uuid: string;
@@ -197,6 +202,16 @@ export class DeviceApiClient {
   async listDevices(): Promise<ListReturnItem[]> {
     return this.makeRequest<ListReturnItem[]>('/list', {
       method: 'GET',
+    });
+  }
+
+  async renameDevice(deviceUuid: string, request: DeviceRenameRequest): Promise<{
+    status: string;
+    detail: string;
+  }> {
+    return this.makeRequest(`/device/${deviceUuid}/rename`, {
+      method: 'POST',
+      body: JSON.stringify(request),
     });
   }
 

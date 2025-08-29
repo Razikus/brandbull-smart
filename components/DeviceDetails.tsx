@@ -1,14 +1,15 @@
 import { createApiClient, DeviceEvents, DeviceInfo } from '@/lib/client';
+import { useFocusEffect } from '@react-navigation/native';
 import { AlarmSmoke, AlertTriangle, Battery, ChevronRight, Settings, Signal, TestTube, Wifi, WifiOff } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useAuth } from './AuthContext';
 
@@ -59,6 +60,13 @@ function DeviceDetailsScreen({ route, navigation }: any) {
       setLoading(false);
     }
   };
+
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDeviceData();
+    }, [device.uuid, device.id, session])
+  );
 
   useEffect(() => {
     fetchDeviceData();

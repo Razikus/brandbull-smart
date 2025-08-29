@@ -21,6 +21,11 @@ import DeviceDetailsScreen from './DeviceDetails';
 
 import { createApiClient, eFlara } from '@/lib/client';
 import { PermissionsAndroid, Platform } from 'react-native';
+
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
+
 const API_BASE_URL = 'https://bbsmart.smarthelmet.pl';
 
 const { HeimanBluetooth } = NativeModules;
@@ -35,6 +40,18 @@ function WiFiConfigScreen({ route, navigation }: any) {
   const [ssid, setSsid] = useState('');
   const [password, setPassword] = useState('');
   const [isConfiguring, setIsConfiguring] = useState(false);
+
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      console.log(e)
+      e.preventDefault(); // Stop the default back behavior
+      
+      navigation.navigate('DevicesList');
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const handleConfigure = async () => {
     if (!ssid.trim()) {
@@ -103,7 +120,6 @@ function WiFiConfigScreen({ route, navigation }: any) {
 }
 
 
-// Screen: Device Configuration Process
 function DeviceConfigurationScreen({ route, navigation }: any) {
   const { device, wifiConfig } = route.params;
   const [configStep, setConfigStep] = useState(0);
@@ -112,6 +128,22 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
   const [error, setError] = useState('');
 
   const { session } = useAuth();
+
+
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      console.log(e)
+      e.preventDefault(); // Stop the default back behaviorHeim
+      HeimanBluetooth.stopConfiguration();
+      HeimanBluetooth.stopConfiguration();
+      HeimanBluetooth.stopConfiguration();
+      
+      navigation.navigate('DevicesList');
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     const stepListener = heimanEmitter.addListener('onConfigStep', (data: { step: number, stepName: string }) => {
@@ -153,17 +185,7 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
 
   const handleDeviceRegistration = async () => {
     try {
-      // TODO: Replace with actual API call
       console.log('Registering device in external system...');
-      
-      // Placeholder for external API registration
-      // const registrationData = {
-      //   deviceMac: device.mac,
-      //   productId: device.productId,
-      //   deviceName: device.name,
-      //   userId: 'current-user-id', // Get from auth context
-      //   registrationTime: new Date().toISOString()
-      // };
 
 
 
@@ -308,6 +330,21 @@ function AddDeviceScreen({ navigation }: any) {
 
   const foundDevices = Array.from(foundDevicesMap.values());
 
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      console.log(e)
+      e.preventDefault(); // Stop the default back behavior
+      
+      // Do your cleanup
+      stopScanning();
+      navigation.navigate('DevicesList');
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+  
+
   useEffect(() => {
     const deviceListener = heimanEmitter.addListener('onDeviceDiscovered', (device: any) => {
       
@@ -357,7 +394,7 @@ function AddDeviceScreen({ navigation }: any) {
     try {
       await HeimanBluetooth.stopDiscovery();
       console.log("STOP")
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await HeimanBluetooth.stopDiscovery();
     } catch (error) {
       console.error('Failed to stop scanning:', error);
     }
@@ -375,6 +412,7 @@ function AddDeviceScreen({ navigation }: any) {
 
   const handleDeviceSelect = async (device: any) => {
     // Stop scanning when device is selected
+    await stopScanning();
     await stopScanning();
     navigation.navigate('WiFiConfig', { device });
   };
@@ -450,15 +488,16 @@ interface DeviceParam {
 }
 
 
-function DeviceSettingsScreen({ route }: any) {
+function DeviceSettingsScreen({ route, navigation }: any) {
   const { device } = route.params;
   const { session } = useAuth();
   const [eFlaraEnabled, setEFlaraEnabled] = useState(false);
   const [homeAddress, setHomeAddress] = useState('');
+  const [deviceName, setDeviceName] = useState(device.name || '');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [renamingSaving, setRenamingSaving] = useState(false);
   const [error, setError] = useState<string>('');
-
 
   const loadDeviceInfo = async () => {
     try {
@@ -471,6 +510,11 @@ function DeviceSettingsScreen({ route }: any) {
 
       const apiClient = createApiClient(API_BASE_URL, session);
       const deviceInfo = await apiClient.getDeviceInfo(device.uuid || device.id);
+      
+      // Load existing device name
+      if (deviceInfo.name) {
+        setDeviceName(deviceInfo.name);
+      }
       
       // Load existing eFlara configuration
       if (deviceInfo.eFlara) {
@@ -489,6 +533,61 @@ function DeviceSettingsScreen({ route }: any) {
   useEffect(() => {
     loadDeviceInfo();
   }, [device.uuid, device.id, session]);
+
+  const handleRename = async () => {
+    const trimmedName = deviceName.trim();
+    
+    if (!trimmedName) {
+      Alert.alert('Błąd', 'Nazwa urządzenia nie może być pusta');
+      return;
+    }
+    
+    if (trimmedName.length < 1 || trimmedName.length > 30) {
+      Alert.alert('Błąd', 'Nazwa urządzenia musi mieć od 1 do 30 znaków');
+      return;
+    }
+
+    try {
+      setRenamingSaving(true);
+      
+      if (!session) {
+        throw new Error('Brak sesji użytkownika');
+      }
+
+      const apiClient = createApiClient(API_BASE_URL, session);
+      await apiClient.renameDevice(device.uuid || device.id, {
+        name: trimmedName
+      });
+      
+      Alert.alert('Sukces', 'Nazwa urządzenia została zmieniona');
+      
+      // Update the device object in navigation params to reflect the new name
+      navigation.setParams({
+        device: {
+          ...device,
+          name: trimmedName
+        }
+      });
+      
+    } catch (err) {
+      console.error('Failed to rename device:', err);
+      
+      let errorMessage = 'Nie udało się zmienić nazwy urządzenia';
+      if (err instanceof Error) {
+        if (err.message.includes('NAME_LENGTH_INVALID')) {
+          errorMessage = 'Nazwa urządzenia musi mieć od 1 do 30 znaków';
+        } else if (err.message.includes('DEVICE_NOT_FOUND')) {
+          errorMessage = 'Urządzenie nie zostało znalezione';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      Alert.alert('Błąd', errorMessage);
+    } finally {
+      setRenamingSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     if (eFlaraEnabled && !homeAddress.trim()) {
@@ -559,7 +658,34 @@ function DeviceSettingsScreen({ route }: any) {
       {/* Header */}
       <View style={styles.settingsHeader}>
         <Text style={styles.settingsTitle}>Ustawienia urządzenia</Text>
-        <Text style={styles.settingsSubtitle}>{device.name}</Text>
+        <Text style={styles.settingsSubtitle}>{deviceName}</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Nazwa urządzenia</Text>
+        
+        <View style={styles.renameRow}>
+          <TextInput
+            style={[styles.textInput, styles.renameInput]}
+            placeholder="Wprowadź nazwę urządzenia"
+            placeholderTextColor="#666666"
+            value={deviceName}
+            onChangeText={setDeviceName}
+            editable={!renamingSaving}
+            maxLength={30}
+          />
+          <TouchableOpacity 
+            style={[styles.renameButton, renamingSaving && styles.disabledButton]} 
+            onPress={handleRename}
+            disabled={renamingSaving}
+          >
+            {renamingSaving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Save size={16} color="#ffffff" />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* eFlara Communication Section */}
@@ -601,7 +727,7 @@ function DeviceSettingsScreen({ route }: any) {
               <AlertTriangle size={20} color={homeAddress.trim() ? "#22c55e" : "#f59e0b"} />
               <Text style={styles.eFlaraStatusText}>
                 {homeAddress.trim() 
-                  ? `eFlara włączona dla adresu: ${homeAddress.trim()}`
+                  ? `eFlara będzie włączona dla adresu: ${homeAddress.trim()}`
                   : 'Podaj adres domowy aby aktywować eFlara'
                 }
               </Text>
@@ -619,7 +745,7 @@ function DeviceSettingsScreen({ route }: any) {
                 <Save size={20} color="#ffffff" />
               )}
               <Text style={styles.saveButtonText}>
-                {saving ? 'Zapisywanie...' : 'Zapisz ustawienia'}
+                {saving ? 'Zapisywanie...' : 'Zapisz ustawienia eFlara'}
               </Text>
             </TouchableOpacity>
           </>
@@ -638,7 +764,7 @@ function DeviceSettingsScreen({ route }: any) {
               <Save size={20} color="#ffffff" />
             )}
             <Text style={styles.saveButtonText}>
-              {saving ? 'Zapisywanie...' : 'Zapisz ustawienia'}
+              {saving ? 'Zapisywanie...' : 'Zapisz ustawienia eFlara'}
             </Text>
           </TouchableOpacity>
         )}
@@ -707,6 +833,14 @@ function DevicesScreen({ navigation }: any) {
   const handleRefresh = () => {
     fetchDevices();
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (session) {
+        fetchDevices();
+      }
+    }, [session])
+  );
 
   return (
     <View style={styles.container}>
@@ -885,7 +1019,14 @@ function CustomDrawerContent(props: any) {
       <View style={styles.drawerMenu}>
         <TouchableOpacity 
           style={styles.drawerItem}
-          onPress={() => props.navigation.navigate('Devices')}
+          onPress={() => {
+            // Navigate to the DevicesList screen within the Devices stack
+            props.navigation.navigate('Devices', { 
+              screen: 'DevicesList' 
+            });
+            // Or alternatively, close the drawer and reset the stack
+            props.navigation.closeDrawer();
+          }}
         >
           <Smartphone size={20} color="#ffffff" style={styles.drawerItemIcon} />
           <Text style={styles.drawerItemText}>Twoje urządzenia</Text>
@@ -942,6 +1083,22 @@ export default function MainApp() {
 }
 
 const styles = StyleSheet.create({
+  renameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  renameInput: {
+    flex: 1,
+  },
+  renameButton: {
+    backgroundColor: '#ff4444',
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

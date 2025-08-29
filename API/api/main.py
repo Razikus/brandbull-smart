@@ -304,6 +304,24 @@ async def get_device_info(device_uuid: str, current_user: str = Depends(get_auth
 
     return deviceInfo
 
+class RenameRequest(BaseModel):
+    name: str
+
+@app.post("/device/{device_uuid}/rename")
+async def rename_device(device_uuid: str, req: RenameRequest, current_user: str = Depends(get_authenticated_user)):
+    device_info = await supadevices.get_device_by_uuid(current_user, device_uuid)
+    if device_info is None:
+        raise HTTPException(status_code=404, detail="DEVICE_NOT_FOUND")
+
+    # check length
+    if len(req.name) < 1 or len(req.name) > 30:
+        raise HTTPException(status_code=400, detail="NAME_LENGTH_INVALID")
+
+    await supadevices.update_device(current_user, device_uuid, {
+        "name": req.name
+    })
+    return {"status": "success", "detail": "Device renamed successfully"}
+
 @app.post("/device/{device_uuid}/eflara")
 async def set_eflara_status(device_uuid: str, req: eFlara, current_user: str = Depends(get_authenticated_user)):
     device_info = await supadevices.get_device_by_uuid(current_user, device_uuid)

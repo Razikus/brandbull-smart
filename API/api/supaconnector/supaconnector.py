@@ -207,25 +207,18 @@ class SupabaseDevicesClient:
             logger.error(f"Failed to list devices: {e}")
             raise
 
-    async def update_device(self, user_id: str, device_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        logger.info(f"Updating device {device_id} for user {user_id}")
+    async def update_device(self, user_id: str, device_uuid: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        logger.info(f"Updating device {device_uuid} for user {user_id}")
 
         try:
-            # First check if device exists
-            existing_device = await self.check_device_exists(user_id, device_id)
-            if not existing_device:
-                logger.warning(f"Device {device_id} not found for user {user_id}")
-                return None
-
-            # Update the device
             result = await self._make_request(
                 "PATCH",
-                f"devices?user_id=eq.{user_id}&internal_device_id=eq.{device_id}",
+                f"devices?user_id=eq.{user_id}&uuid=eq.{device_uuid}",
                 json=updates
             )
 
             if result:
-                logger.info(f"Device {device_id} updated successfully")
+                logger.info(f"Device {device_uuid} updated successfully")
                 return result[0] if isinstance(result, list) else result
             else:
                 return None
