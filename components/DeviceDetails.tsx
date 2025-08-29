@@ -78,6 +78,8 @@ function DeviceDetailsScreen({ route, navigation }: any) {
         return <TestTube size={20} color="#22c55e" />;
       case 'smokealarm':
         return <AlertTriangle size={20} color="#ff4444" />;
+      case 'smokecheckalarm':
+        return <AlertTriangle size={20} color="#ff4444" />;
       case 'batterylow':
         return <Battery size={20} color="#f59e0b" />;
       default:
@@ -88,6 +90,9 @@ function DeviceDetailsScreen({ route, navigation }: any) {
   const getSystemEventIcon = (propertyName: string) => {
     if (propertyName.includes('Battery')) {
       return <Battery size={20} color="#22c55e" />;
+    }
+    if (propertyName.includes('SmokeSensorState')) {
+      return <AlertTriangle size={20} color="#ff4444" />;
     }
     if (propertyName.includes('RSSI') || propertyName.includes('DeviceINFO')) {
       return <Signal size={20} color="#3b82f6" />;
@@ -104,6 +109,8 @@ function DeviceDetailsScreen({ route, navigation }: any) {
         return 'Test alarmu';
       case 'smokealarm':
         return 'Alarm dymu';
+      case 'smokecheckalarm':
+        return 'Wykryto dym';
       case 'batterylow':
         return 'Niski poziom baterii';
       default:
@@ -115,6 +122,9 @@ function DeviceDetailsScreen({ route, navigation }: any) {
     const keys = Object.keys(properties);
     if (keys.includes('BatteryPercentage')) {
       return `Bateria: ${properties.BatteryPercentage}%`;
+    }
+    if (keys.includes('SmokeSensorState')) {
+      return `Stan czujnika dymu: ${properties.SmokeSensorState}`;
     }
     if (keys.includes('RSSI')) {
       return `Siła sygnału: ${properties.RSSI} dBm`;

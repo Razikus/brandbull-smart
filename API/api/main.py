@@ -18,6 +18,8 @@ import json
 from .notifier.notifier import processNotification, NotificationRequest, processEFlaraREQ, Address
 
 from asyncio import sleep
+from contextlib import asynccontextmanager
+import redis.asyncio as redis
 
 
 class DeviceRegistrationRequest(BaseModel):
@@ -41,7 +43,39 @@ class ListReturnItem(BaseModel):
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-app = FastAPI(title="BrandbullSmart", version="1.0.0", description="From razniewski.eu with <3")
+
+redis_client: redis.Redis = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global redis_client
+    redis_client = redis.Redis(
+        host='redis',
+        port=6379,
+        db=0,
+        decode_responses=True,
+        retry_on_error=[redis.BusyLoadingError, redis.ConnectionError],
+        health_check_interval=30
+    )
+
+    # Test connection
+    try:
+        await redis_client.ping()
+        print("✅ Connected to Redis successfully")
+    except redis.ConnectionError:
+        print("❌ Failed to connect to Redis")
+        raise
+
+    yield
+
+    # Shutdown
+    if redis_client:
+        await redis_client.aclose()
+        print("🔌 Redis connection closed")
+
+app = FastAPI(title="BrandbullSmart", version="1.0.0", description="From razniewski.eu with <3", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,7 +83,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-
 security = HTTPBearer()
 clientidheiman = os.getenv("HEIMAN_CLIENT_ID")
 secretheiman = os.getenv("HEIMAN_CLIENT_SECRET")
@@ -474,15 +507,16 @@ class EventPayload(BaseModel):
     messageId: str
 
 
-async def processEFlara(tokens: List[str], device_uuid: str):
+async def processEFlara(tokens: List[str], device_uuid: str, realAlarm: bool):
     await sleep(4) # wait for other notifications to turn off
     eFlaraStatus = await supadevices.get_eflara_for_device(device_uuid)
     if eFlaraStatus is not None and eFlaraStatus["enabled"]:
         print("Processing eFLARA", device_uuid)
-        wasReqiested = await processEFlaraREQ(Address(address=eFlaraStatus["address"]))
-        print("eFLARA REQ", wasReqiested)
-        print("eFLARA REQ", wasReqiested)
-        print("eFLARA REQ", wasReqiested)
+        if realAlarm:
+            wasReqiested = await processEFlaraREQ(Address(address=eFlaraStatus["address"]))
+            print("eFLARA REQ", wasReqiested)
+            print("eFLARA REQ", wasReqiested)
+            print("eFLARA REQ", wasReqiested)
         notiRequest = NotificationRequest(
             tokens=tokens,
             title="Zawiadomiono pierwszych ratowników (TEST)",
@@ -498,38 +532,61 @@ async def internal_event(req: Request, event: EventPayload, background_tasks: Ba
     if headerOf != os.getenv("INTERNAL_SECRET"):
         raise HTTPException(status_code=403, detail="Forbidden")
 
+    result = await redis_client.set(f"event_lock_{event.messageId}", "1", ex=60*10, nx=True)
+    print(result, flush=True)
+    if result:
+        print("PROCESSING EVENT", event)
 
-    print("PROCESSING EVENT", event)
+        userReplacedPrefix = event.user.replace("SH_", "", 1)
 
-    userReplacedPrefix = event.user.replace("SH_", "", 1)
+        device = await supadevices.get_device_by_user_device_id(userReplacedPrefix, event.deviceId)
 
-    device = await supadevices.get_device_by_user_device_id(userReplacedPrefix, event.deviceId)
+        notifications = await supadevices.get_notification_tokens_for_user(userReplacedPrefix)
+        if not notifications:
+            print("NO TOKENS")
+            return {"status": "no tokens"}
 
-    notifications = await supadevices.get_notification_tokens_for_user(userReplacedPrefix)
-    if not notifications:
-        print("NO TOKENS")
-        return {"status": "no tokens"}
+        if len(notifications) == 0:
+            print("NO TOKENS")
+            return {"status": "no tokens"}
 
-    if len(notifications) == 0:
-        print("NO TOKENS")
-        return {"status": "no tokens"}
+        allTokens = []
+        for item in notifications:
+            token = item.get("token", None)
+            if token is not None:
+                allTokens.append(token)
 
-    allTokens = []
-    for item in notifications:
-        token = item.get("token", None)
-        if token is not None:
-            allTokens.append(token)
+        if event.eventName == "AlarmTest":
+            title = "Wykryto dym! (TEST)"
+            body = f"Wykryto dym. Urządzenie - {device['name']}"
+            reqNoti = NotificationRequest(
+                tokens=allTokens,
+                title=title,
+                body=body
+            )
+            background_tasks.add_task(processNotification, reqNoti)
+            background_tasks.add_task(processEFlara, allTokens, device["uuid"], False)
+        elif event.eventName == "SmokeCheckAlarm":
 
-    if event.eventName == "AlarmTest":
-        title = "Wykryto dym! (TEST)"
-        body = f"Wykryto dym. Urządzenie - {device['name']}"
-        reqNoti = NotificationRequest(
-            tokens=allTokens,
-            title=title,
-            body=body
-        )
-        background_tasks.add_task(processNotification, reqNoti)
-        background_tasks.add_task(processEFlara, allTokens, device["uuid"])
+            lockForRepeat = await redis_client.set(f"smoke_event_lock_{device['uuid']}", "1", ex=60*60, nx=True)
+            print(lockForRepeat, flush=True)
+            if lockForRepeat:
+                print("PROCESSING REAL EVENT", flush=True)
+                smoke_state = event.data.get('SmokeSensorState')
+                if str(smoke_state) == "1":
+                    title = "ALARM! Wykryto dym!"
+                    body = f"Wykryto dym! Urządzenie - {device['name']}"
+                    reqNoti = NotificationRequest(
+                        tokens=allTokens,
+                        title=title,
+                        body=body
+                    )
+                    background_tasks.add_task(processNotification, reqNoti)
+                    background_tasks.add_task(processEFlara, allTokens, device["uuid"], True)
+            else:
+                print("SMOKE EVENT ALREADY PROCESSED BEFORE!", flush=True)
+    else:
+        print("Duplicate event, ignoring", event.messageId, event, flush=True)
 
     return {"status": "event received"}
 

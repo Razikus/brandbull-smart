@@ -799,7 +799,6 @@ function DevicesScreen({ navigation }: any) {
 
       const apiClient = createApiClient(API_BASE_URL, session);
 
-      console.log(session?.access_token)
       const apiDevices = await apiClient.listDevices();
       
       // Transform API response to match UI expectations
