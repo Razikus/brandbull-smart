@@ -28,6 +28,7 @@ import { useCallback } from 'react';
 
 const API_BASE_URL = 'https://bbsmart.smarthelmet.pl';
 
+
 const { HeimanBluetooth } = NativeModules;
 const heimanEmitter = new NativeEventEmitter(HeimanBluetooth);
 
@@ -42,17 +43,6 @@ function WiFiConfigScreen({ route, navigation }: any) {
   const [isConfiguring, setIsConfiguring] = useState(false);
 
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-      console.log(e)
-      e.preventDefault(); // Stop the default back behavior
-      
-      navigation.navigate('DevicesList');
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
   const handleConfigure = async () => {
     if (!ssid.trim()) {
       Alert.alert('Błąd', 'Podaj nazwę sieci WiFi');
@@ -63,7 +53,7 @@ function WiFiConfigScreen({ route, navigation }: any) {
       return;
     }
 
-    navigation.navigate('DeviceConfiguration', {
+    navigation.replace('DeviceConfiguration', {
       device,
       wifiConfig: { ssid: ssid.trim(), password: password.trim() }
     });
@@ -129,23 +119,16 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
 
   const { session } = useAuth();
 
+  useEffect(() => {
+    return () => {
+      console.log('DeviceConfigurationScreen unmounting, stopping configuration');
+      HeimanBluetooth.stopConfiguration();
+    };
+  }, []);
 
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-      console.log(e)
-      e.preventDefault(); // Stop the default back behaviorHeim
-      HeimanBluetooth.stopConfiguration();
-      HeimanBluetooth.stopConfiguration();
-      HeimanBluetooth.stopConfiguration();
-      
-      navigation.navigate('DevicesList');
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
-  useEffect(() => {
+    updateStepDisplay(0);
     const stepListener = heimanEmitter.addListener('onConfigStep', (data: { step: number, stepName: string }) => {
       console.log(`Configuration step: ${data.stepName} (${data.step})`);
       setConfigStep(data.step);
@@ -159,6 +142,7 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
     });
 
     return () => {
+      console.log("Removing listeners");
       stepListener.remove();
       errorListener.remove();
     };
@@ -166,7 +150,7 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
 
   const updateStepDisplay = (step: number) => {
     const steps: string[] = [];
-    
+    if(step >= 0) steps.push('Wyszukiwanie urządzenia...');
     if (step >= 1) steps.push('Łączenie z urządzeniem...');
     if (step >= 2) steps.push('Wysyłanie danych WiFi...');
     if (step >= 3) steps.push('Urządzenie łączy się z siecią...');
@@ -178,7 +162,7 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
     setConfigSteps(steps);
 
     // Handle final success step
-    if (step === 4) { // STEP_DEVICE_CONNECT_NET_SUCCEED
+    if (step >= 4) { // STEP_DEVICE_CONNECT_NET_SUCCEED
       handleDeviceRegistration();
     }
   };
@@ -205,7 +189,12 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
           [
             {
               text: 'OK',
-              onPress: () => navigation.navigate('DevicesList')
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'DevicesList' }],
+                });
+              }
             }
           ]
         );
@@ -230,9 +219,11 @@ function DeviceConfigurationScreen({ route, navigation }: any) {
         hostUrl: "https://spapi.heiman.cn", // Stałe wartości
         mqttUrl: "spmqtt.heiman.cn:1884"
       };
+      // sleep for one seond
+      await new Promise(resolve => setTimeout(resolve, 1000));
       console.log('Device configuration:', config);
 
-      await HeimanBluetooth.configureDevice(config);
+      HeimanBluetooth.configureDevice(config);
     } catch (error) {
       console.error('Configuration failed:', error);
       setError(`Konfiguracja nie powiodła się: ${error}`);
@@ -330,23 +321,9 @@ function AddDeviceScreen({ navigation }: any) {
 
   const foundDevices = Array.from(foundDevicesMap.values());
 
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-      console.log(e)
-      e.preventDefault(); // Stop the default back behavior
-      
-      // Do your cleanup
-      stopScanning();
-      navigation.navigate('DevicesList');
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-  
-
   useEffect(() => {
     const deviceListener = heimanEmitter.addListener('onDeviceDiscovered', (device: any) => {
+      console.log('Discovered device:', device);
       
       setFoundDevicesMap(prev => {
         if (prev.has(device.mac)) {
@@ -371,6 +348,7 @@ function AddDeviceScreen({ navigation }: any) {
     });
 
     return () => {
+      console.log("Removing device listener");
       deviceListener.remove();
     };
   }, []);
@@ -392,9 +370,8 @@ function AddDeviceScreen({ navigation }: any) {
 
   const stopScanning = async () => {
     try {
-      await HeimanBluetooth.stopDiscovery();
-      console.log("STOP")
-      await HeimanBluetooth.stopDiscovery();
+      let res = await HeimanBluetooth.stopDiscovery();
+      console.log("STOP", res)
     } catch (error) {
       console.error('Failed to stop scanning:', error);
     }
@@ -414,7 +391,7 @@ function AddDeviceScreen({ navigation }: any) {
     // Stop scanning when device is selected
     await stopScanning();
     await stopScanning();
-    navigation.navigate('WiFiConfig', { device });
+    navigation.replace('WiFiConfig', { device });
   };
 
   return (

@@ -40,6 +40,7 @@ export default function Auth() {
   React.useEffect(() => {
     GoogleSignin.configure({
       webClientId: '443024442162-ond2ppjh8504iqukgp8dsso6kl69sla3.apps.googleusercontent.com',
+      iosClientId: '443024442162-41n791gncnn4j0bbpi05jub6bd000rdh.apps.googleusercontent.com',
     });
   }, []);
 
