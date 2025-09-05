@@ -10,7 +10,13 @@ export default {
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "eu.razniewski.bbsmart"
+      "bundleIdentifier": "eu.razniewski.bbsmart",
+      "icon": "./assets/logo.png",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "This app needs Bluetooth access to connect and configure smart home devices",
+        "NSBluetoothPeripheralUsageDescription": "This app needs Bluetooth access to discover and connect to smart home devices",
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to read WiFi network information for device configuration"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -33,10 +39,14 @@ export default {
         {
           "android": {
             "minSdkVersion": 26
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
           }
         }
       ],
       "./plugins/heiman-bluetooth-plugin",
+      "./plugins/heiman-ios-plugin",
       "expo-router",
       [
         "expo-splash-screen",

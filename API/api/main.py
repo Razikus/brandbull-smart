@@ -21,6 +21,10 @@ from asyncio import sleep
 from contextlib import asynccontextmanager
 import redis.asyncio as redis
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+
 
 class DeviceRegistrationRequest(BaseModel):
     deviceName: str
@@ -512,20 +516,31 @@ async def processEFlara(tokens: List[str], device_uuid: str, realAlarm: bool):
     eFlaraStatus = await supadevices.get_eflara_for_device(device_uuid)
     if eFlaraStatus is not None and eFlaraStatus["enabled"]:
         print("Processing eFLARA", device_uuid)
+        title = "Zawiadomiono pierwszych ratowników (TEST)"
         if realAlarm:
             wasReqiested = await processEFlaraREQ(Address(address=eFlaraStatus["address"]))
             print("eFLARA REQ", wasReqiested)
             print("eFLARA REQ", wasReqiested)
             print("eFLARA REQ", wasReqiested)
+            title = "Zawiadomiono pierwszych ratowników"
         notiRequest = NotificationRequest(
             tokens=tokens,
-            title="Zawiadomiono pierwszych ratowników (TEST)",
+            title=title,
             body=f"Zawiadomiono pierwszych ratowników. Adres: {eFlaraStatus['address']}"
         )
         await processNotification(notiRequest, sound="ratownik.wav", channel="ratownik")
 
     pass
 
+
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+@app.get("/")
+async def read_index():
+    return FileResponse('static/index.html')
+@app.get("/privacy.html")
+async def privacy_page():
+    return FileResponse('static/privacy.html')
 @app.post("/internal/event", include_in_schema=False)
 async def internal_event(req: Request, event: EventPayload, background_tasks: BackgroundTasks):
     headerOf = req.headers.get("X-Internal-Secret", None)

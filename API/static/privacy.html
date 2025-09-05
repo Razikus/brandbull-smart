@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polityka Prywatności - BrandbullSmart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            color: #ffffff;
+            background-color: #000000;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #000000;
+            border-radius: 10px;
+            border: 1px solid #333333;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #000000;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #333333;
+        }
+
+        .logoContainer {
+            margin-bottom: 20px;
+        }
+
+        .logoBrandBull {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        .logoSmart {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff4444;
+            letter-spacing: 2px;
+            margin-top: -4px;
+            line-height: 1;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+            color: #cccccc;
+            margin: 0;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333333;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            color: #cccccc;
+        }
+
+        .tab:hover {
+            background-color: #333333;
+        }
+
+        .tab.active {
+            background-color: #000000;
+            border-bottom-color: #ff4444;
+            color: #ffffff;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+            background: #000000;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .privacy-content h2 {
+            color: #ffffff;
+            margin: 30px 0 15px 0;
+            font-size: 1.4em;
+            border-bottom: 2px solid #333333;
+            padding-bottom: 10px;
+        }
+
+        .privacy-content h3 {
+            color: #cccccc;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .privacy-content p, .privacy-content li {
+            margin-bottom: 12px;
+            text-align: justify;
+            color: #cccccc;
+        }
+
+        .privacy-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .privacy-content strong {
+            color: #ffffff;
+        }
+
+        .privacy-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .delete-account {
+            text-align: center;
+        }
+
+        .delete-account h2 {
+            color: #ffffff;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .email-box {
+            background: #1a1a1a;
+            border: 1px solid #ff4444;
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+
+        .email-box h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .email-address {
+            font-size: 1.8em;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 15px 0;
+            color: #ff4444;
+        }
+
+        .email-link {
+            color: #ffffff;
+            text-decoration: none;
+            border: 2px solid #ff4444;
+            background: #ff4444;
+            padding: 12px 30px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .email-link:hover {
+            background: transparent;
+            color: #ff4444;
+        }
+
+        .steps {
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+
+        .steps h3 {
+            color: #ffffff;
+            margin-bottom: 15px;
+        }
+
+        .steps ol {
+            margin-left: 20px;
+        }
+
+        .steps li {
+            margin-bottom: 8px;
+            padding: 5px 0;
+            color: #cccccc;
+        }
+
+        .steps strong {
+            color: #ffffff;
+        }
+
+        .steps em {
+            color: #ff4444;
+        }
+
+        .warning {
+            background: #2a1a1a;
+            border: 1px solid #ff4444;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #ffffff;
+        }
+
+        .warning strong {
+            color: #ff4444;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 5px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .tab {
+                padding: 12px 10px;
+                font-size: 14px;
+            }
+
+            .email-address {
+                font-size: 1.4em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logoContainer">
+                <div class="logoBrandBull">BRANDBULL</div>
+                <div class="logoSmart">SMART</div>
+            </div>
+            <p>Informacje o prywatności i zarządzaniu kontem</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('privacy')">
+                📋 Polityka Prywatności
+            </button>
+            <button class="tab" onclick="showTab('delete')">
+                🗑️ Usunięcie Konta
+            </button>
+        </div>
+
+        <div id="privacy" class="tab-content active">
+            <div class="privacy-content">
+                <h2>Polityka prywatności</h2>
+                <p><strong>Szanowny Użytkowniku!</strong></p>
+                <p>Niniejsza polityka prywatności strony www.brandbull.pl (dalej jako „Strona internetowa") jest skierowana do użytkowników strony internetowej (dalej jako „Użytkownicy") oraz określa zasady przechowywania i dostępu do informacji na urządzeniach Użytkownika za pomocą plików cookies, służących realizacji usług świadczonych drogą elektroniczną.</p>
+
+                <h2>I. INFORMACJE OGÓLNE (KLAUZULA INFORMACYJNA)</h2>
+
+                <h3>1. Informacja o Administratorze Danych:</h3>
+                <p>Administratorem Twoich danych jest spółka <strong>Brandbull International S.A. Oddział w Polsce</strong>, ul. Przybrzeżna 37, 62-800 Kalisz, KRS 0001000706, NIP: 618-219-54-19, REGON: 523568431 (zwana dalej „Administratorem").</p>
+
+                <h3>2. Kontakt:</h3>
+                <p>Możesz kontaktować się z nami korespondencyjnie pod adresem Brandbull International S.A. Oddział w Polsce, ul. Przybrzeżna 37, 62-800 Kalisz lub mailowo: <strong>biuro@brandbull.pl</strong></p>
+
+                <h3>3. Cele przetwarzania danych osobowych oraz podstawa prawna przetwarzania:</h3>
+                <p>Twoje dane osobowe będą przetwarzane przez nas wyłącznie w celu prawidłowej realizacji umowy świadczenia Usług drogą elektroniczną (na podstawie art. 6 ust. 1 (b) ogólnego rozporządzenia o ochronie danych osobowych z dnia 27 kwietnia 2016 r. („RODO")) oraz w celu wykrywania nadużyć, zapobiegania im, ustalenia, obrony i dochodzenia roszczeń (art. 6 ust. 1 (f) RODO).</p>
+
+                <h3>4. Informacja o odbiorcach Twoich danych osobowych:</h3>
+                <p>W niektórych sytuacjach mamy prawo przekazywać Twoje dane osobowe, jeśli będzie to konieczne, abyśmy mogli wykonywać nasze usługi. Będziemy przekazywać dane wyłącznie dwóm grupom:</p>
+                <ul>
+                    <li>osobom upoważnionym przez nas, naszym pracownikom i współpracownikom, którzy muszą mieć dostęp do danych, aby wykonywać swoje obowiązki,</li>
+                    <li>podmiotom przetwarzającym, którym zlecimy to zadanie, np. firmom zajmującym się obsługą naszych systemów teleinformatycznych lub udostępniającym nam narzędzia teleinformatyczne.</li>
+                </ul>
+
+                <h3>5. Okres przechowywania Twoich danych osobowych:</h3>
+                <p>Twoje dane osobowe będą przez nas przetwarzane przez czas świadczenia na Twoją rzecz usług do momentu zakończenia sesji przeglądarki, czyli do momentu jej zamknięcia.</p>
+
+                <h3>6. Informacja dotycząca przekazywania danych do Państw trzecich:</h3>
+                <p>Twoje dane osobowe nie będą przez nas przekazywane poza obszar UE.</p>
+
+                <h3>7. Twoje prawa:</h3>
+                <ul>
+                    <li>masz prawo żądania dostępu do Twoich danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, jak również przenoszenia Twoich danych osobowych,</li>
+                    <li>masz prawo do wniesienia sprzeciwu wobec przetwarzania Twoich danych osobowych, a także do wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych jeżeli uznasz, że przetwarzanie Twoich danych osobowych narusza przepisy RODO.</li>
+                </ul>
+
+                <h2>II COOKIES</h2>
+                <p>Podczas korzystania przez Ciebie ze Strony internetowej automatycznie zbierane są pliki cookies.</p>
+                <p>Pliki cookies to dane, w szczególności pliki tekstowe, wysyłane z serwera strony internetowej i przechowywane przez przeglądarkę internetową lub inne rozwiązania technologiczne na urządzeniu końcowym (np. komputerze osobistym lub urządzeniu mobilnym typu smartfon, tablet). Nie powodują one żadnych uszkodzeń na Twoim komputerze ani innym urządzeniu końcowym i nie zawierają wirusów.</p>
+                <p>W ramach naszej Strony internetowej stosowane są wyłącznie niezbędne pliki cookies, które umożliwiają nawigowanie na witrynie internetowej i korzystanie z podstawowych funkcji, np. wtyczek multimedialnych. Są one tymczasowo przechowywane w pamięci przeglądarki do momentu zakończenia sesji przeglądarki, czyli do momentu jej zamknięcia (cookies tymczasowe).</p>
+            </div>
+        </div>
+
+        <div id="delete" class="tab-content">
+            <div class="delete-account">
+                <h2>🗑️ Usunięcie Konta</h2>
+                <p>Jeśli chcesz usunąć swoje konto i wszystkie powiązane z nim dane, skontaktuj się z nami wysyłając wiadomość e-mail.</p>
+
+                <div class="email-box">
+                    <h3>📧 Adres Kontaktowy</h3>
+                    <div class="email-address">BIURO@BRANDBULL.PL</div>
+                    <a href="mailto:biuro@brandbull.pl?subject=Wniosek o usunięcie konta&body=Dzień dobry,%0D%0A%0D%0AProszę o usunięcie mojego konta wraz z wszystkimi powiązanymi danymi.%0D%0A%0D%0APozdrawiam" class="email-link">
+                        Wyślij E-mail
+                    </a>
+                </div>
+
+                <div class="steps">
+                    <h3>📝 Jak usunąć konto - instrukcja:</h3>
+                    <ol>
+                        <li>Wyślij wiadomość e-mail na adres <strong>biuro@brandbull.pl</strong></li>
+                        <li>W temacie wpisz: <em>"Wniosek o usunięcie konta"</em></li>
+                        <li>W treści wiadomości podaj swój identyfikator użytkownika lub adres e-mail przypisany do konta</li>
+                        <li>Nasz zespół przetworzy Twoją prośbę w ciągu 30 dni roboczych</li>
+                        <li>Otrzymasz potwierdzenie usunięcia konta na podany adres e-mail</li>
+                    </ol>
+                </div>
+
+                <div class="warning">
+                    <strong>⚠️ WAŻNE:</strong> Usunięcie konta jest nieodwracalne. Wszystkie dane, ustawienia urządzeń i historia będą trwale usunięte. Upewnij się, że chcesz kontynuować przed wysłaniem wniosku.
+                </div>
+
+                <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-top: 25px;">
+                    <h3 style="color: #2d7d32; margin-bottom: 10px;">✅ Co zostanie usunięte?</h3>
+                    <ul style="color: #2d7d32; text-align: left;">
+                        <li>Twoje konto użytkownika</li>
+                        <li>Wszystkie zarejestrowane urządzenia</li>
+                        <li>Historia zdarzeń i powiadomień</li>
+                        <li>Ustawienia eFlara</li>
+                        <li>Tokeny powiadomień push</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

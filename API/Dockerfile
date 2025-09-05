@@ -5,6 +5,9 @@ RUN pip install --no-cache-dir -r /app/requirements.txt && rm -rf /root/.cache/p
 
 COPY api /app/api
 
+COPY static /app/static
+
 WORKDIR /app
+
 
 ENTRYPOINT ["uvicorn", "api.main:app", "--host", "0.0.0.0"]
