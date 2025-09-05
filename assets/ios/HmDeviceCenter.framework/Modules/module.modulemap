@@ -1,0 +1,6 @@
+framework module HmDeviceCenter {
+  umbrella header "HmDeviceCenter.h"
+  export *
+
+  module * { export * }
+}
