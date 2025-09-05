@@ -27,6 +27,11 @@ target 'BrandbullSMART' do
       '--platform',
       'ios'
     ]
+  
+  # Heiman Bluetooth Dependencies
+  pod 'CocoaAsyncSocket', '7.6.5'
+  pod 'GTMBase64'
+
   end
 
   config = use_native_modules!(config_command)
