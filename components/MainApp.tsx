@@ -1,6 +1,6 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
-import { AlarmSmoke, AlertTriangle, ChevronRight, LogOut, Plus, Save, Search, Settings, Smartphone, TestTube } from 'lucide-react-native';
+import { AlarmSmoke, AlertTriangle, ChevronRight, LogOut, Plus, Save, Search, Settings, Smartphone, TestTube, Trash2, User } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -903,6 +903,96 @@ function DevicesScreen({ navigation }: any) {
   );
 }
 
+function AccountSettingsScreen({ navigation }: any) {
+  const { signOut, session } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Usuń konto',
+      'Czy na pewno chcesz usunąć swoje konto? Ta operacja jest nieodwracalna i spowoduje usunięcie wszystkich Twoich danych i urządzeń.',
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        { 
+          text: 'Usuń konto', 
+          style: 'destructive',
+          onPress: confirmDeleteAccount
+        }
+      ]
+    );
+  };
+
+  const confirmDeleteAccount = async () => {
+    try {
+      setDeleting(true);
+      
+      if (!session) {
+        throw new Error('Brak sesji użytkownika');
+      }
+
+      const apiClient = createApiClient(API_BASE_URL, session);
+      await apiClient.deleteAccount();
+      
+      Alert.alert(
+        'Konto usunięte',
+        'Twoje konto zostało pomyślnie usunięte.',
+        [
+          {
+            text: 'OK',
+            onPress: () => signOut()
+          }
+        ]
+      );
+      
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+      Alert.alert(
+        'Błąd', 
+        err instanceof Error ? err.message : 'Nie udało się usunąć konta'
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      
+      <View style={styles.settingsHeader}>
+        <Text style={styles.settingsTitle}>Ustawienia konta</Text>
+        <Text style={styles.settingsSubtitle}>Zarządzaj swoim kontem użytkownika</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Zarządzanie kontem</Text>
+        
+        <TouchableOpacity 
+          style={[styles.deleteAccountButton, deleting && styles.disabledButton]} 
+          onPress={handleDeleteAccount}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Trash2 size={20} color="#ffffff" />
+          )}
+          <Text style={styles.deleteAccountButtonText}>
+            {deleting ? 'Usuwanie konta...' : 'Usuń konto'}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.warningContainer}>
+          <AlertTriangle size={16} color="#f59e0b" />
+          <Text style={styles.warningText}>
+            Usunięcie konta jest nieodwracalne. Wszystkie Twoje dane i urządzenia zostaną trwale usunięte.
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
 // Stack Navigator for Devices
 function DevicesStackNavigator() {
   return (
@@ -957,6 +1047,12 @@ function DevicesStackNavigator() {
           headerBackTitle: 'Wróć',
         }}
       />
+
+      <Stack.Screen 
+        name="AccountSettings" 
+        component={AccountSettingsScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
@@ -1007,6 +1103,18 @@ function CustomDrawerContent(props: any) {
           <Smartphone size={20} color="#ffffff" style={styles.drawerItemIcon} />
           <Text style={styles.drawerItemText}>Twoje urządzenia</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.drawerItem}
+          onPress={() => {
+            props.navigation.navigate('Devices', { 
+              screen: 'AccountSettings' 
+            });
+            props.navigation.closeDrawer();
+          }}
+        >
+          <User size={20} color="#ffffff" style={styles.drawerItemIcon} />
+          <Text style={styles.drawerItemText}>Ustawienia konta</Text>
+      </TouchableOpacity>
 
         <TouchableOpacity 
           style={[styles.drawerItem, styles.drawerItemDanger]}
@@ -1655,5 +1763,36 @@ const styles = StyleSheet.create({
   },
   devicesScrollContainer: {
     flex: 1,
+  },
+  deleteAccountButton: {
+    backgroundColor: '#dc2626',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  deleteAccountButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  warningContainer: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  warningText: {
+    color: '#f59e0b',
+    fontSize: 14,
+    marginLeft: 12,
+    flex: 1,
+    lineHeight: 20,
   },
 });

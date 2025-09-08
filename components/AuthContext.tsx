@@ -1,7 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { NotificationService } from '../lib/notification';
 import { supabase } from '../lib/supabase';
+
 
 type AuthContextType = {
   session: Session | null;
@@ -82,7 +84,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -98,9 +99,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signOut = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    setLoading(false);
+      
+    try {
+      console.log('Starting sign out...');
+      setLoading(true);
+      
+      // Próbuj wylogować z Supabase, ale nie przejmuj się błędami
+      await supabase.auth.signOut();
+      
+    } catch (error) {
+      console.error('Sign out error (ignoring):', error);
+      // Ignoruj błędy - i tak chcemy wyczyścić stan lokalny
+    } finally {
+      // ZAWSZE wyczyść lokalny stan, niezależnie od błędów
+      console.log('Clearing local auth state');
+      const allKeys = await AsyncStorage.getAllKeys();
+      for (const key of allKeys) {
+        if (key.startsWith('sb-')) {
+          console.log('Removing key:', key);
+          await AsyncStorage.removeItem(key);
+        }
+      }
+      setSession(null);
+      setUser(null);
+      setLoading(false);
+    }
   };
 
   const value = {

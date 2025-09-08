@@ -5,7 +5,7 @@ metadata:
   labels:
     app: bbsmart-api
 spec:
-  replicas: 3
+  replicas: 5
   selector:
     matchLabels:
       app: bbsmart-api
@@ -18,7 +18,7 @@ spec:
       - name: gitlab-registry-secret
       containers:
       - name: bbsmart-api
-        image: registry.gitlab.com/razniewski/bbsmart:api3.6
+        image: registry.gitlab.com/razniewski/bbsmart:api4.2
         ports:
         - containerPort: 8000
         envFrom:

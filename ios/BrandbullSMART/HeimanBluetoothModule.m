@@ -11,6 +11,7 @@
     RCTPromiseResolveBlock currentConfigResolve;
     RCTPromiseRejectBlock currentConfigReject;
     BOOL hasListeners;
+    NSMutableArray<NSDictionary *> *cachedDevices;
 }
 
 RCT_EXPORT_MODULE(HeimanBluetooth);
@@ -24,6 +25,8 @@ RCT_EXPORT_MODULE(HeimanBluetooth);
     if (self) {
         deviceManager = [HmDeviceManagerCenter shard];
         hasListeners = NO;
+        NSLog(@"🔵 HeimanBluetoothModule initialized");
+        cachedDevices = [NSMutableArray new];
     }
     return self;
 }
@@ -64,6 +67,17 @@ RCT_EXPORT_METHOD(startDiscovery:(RCTPromiseResolveBlock)resolve
                     reject(@"BLUETOOTH_ERROR", @"Bluetooth is not enabled", nil);
                     return;
                 }
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                    NSLog(@"🔵 About to send cached devices. Cache count: %lu", (unsigned long)self->cachedDevices.count);
+                    
+                    for (NSDictionary *cachedDevice in self->cachedDevices) {
+                        NSLog(@"🔵 Sending cached device: %@", cachedDevice);
+                        if (self->hasListeners) {
+                            [self sendEventWithName:@"onDeviceDiscovered" body:cachedDevice];
+                        }
+                    }
+                });
+
                 
                 NSLog(@"🔵 Starting Bluetooth discovery...");
                 // Start discovery
@@ -71,16 +85,18 @@ RCT_EXPORT_METHOD(startDiscovery:(RCTPromiseResolveBlock)resolve
                     NSLog(@"🔵 Discovery callback - state: %ld, devices count: %lu", (long)state, (unsigned long)devices.count);
                     NSLog(@"🔵 Devices: %@", devices);
 
-// @property (nonatomic, copy) NSString * Id;                 //产品id
-// @property (nonatomic, copy) NSString * name;               //产品名称
-// @property (nonatomic, copy) NSString * photoUrl;           //产品图片
-// @property (nonatomic, assign) NSInteger state;             //1正常,0禁用
-// @property (nonatomic, copy) NSString * deviceType;         //网关:gateway、网关子设备:childrenDevice、直连设备:device
-// @property (nonatomic, copy) NSString * mac;                //设备mac
-
                     
                     if (state == HmCBStateOn && devices.count > 0) {
                         for (HmProductModel *device in devices) {
+                            BOOL alreadyCached = NO;
+                            NSString *currentMac = device.mac;
+                            
+                            for (NSDictionary *cached in self->cachedDevices) {
+                                if ([cached[@"mac"] isEqualToString:currentMac]) {
+                                    alreadyCached = YES;
+                                    break;
+                                }
+                            }
                             NSLog(@"🔵 Discovered device: %@ %@ %@ %ld %@ %@", device.Id, device.name, device.photoUrl, (long)device.state, device.deviceType, device.mac);
 
                             
@@ -92,10 +108,29 @@ RCT_EXPORT_METHOD(startDiscovery:(RCTPromiseResolveBlock)resolve
                                     @"photoUrl": device.photoUrl ?: @""
                                 }];
                             }
+                            if (!alreadyCached) {
+                                NSDictionary *cachedDevice = @{
+                                    @"productId": device.Id ?: @"",
+                                    @"mac": device.mac ?: @"",
+                                    @"name": device.name ?: @"",
+                                    @"photoUrl": device.photoUrl ?: @""
+                                };
+                                
+                                [self->cachedDevices addObject:cachedDevice];
+                                NSLog(@"🟢 ADDED TO CACHE: %@ - Total cached devices: %lu", currentMac, (unsigned long)self->cachedDevices.count);
+                                
+                                for (int j = 0; j < self->cachedDevices.count; j++) {
+                                    NSDictionary *cached = self->cachedDevices[j];
+                                    NSLog(@"🟢 Cached[%d]: %@", j, cached);
+                                }
+                                
+                                if (self->hasListeners) {
+                                    [self sendEventWithName:@"onDeviceDiscovered" body:cachedDevice];
+                                }
+                            }
                         }
                     } else if (state != HmCBStateOn) {
                         NSLog(@"❌ Bluetooth state changed during discovery: %ld", (long)state);
-                        reject(@"BLUETOOTH_ERROR", @"Bluetooth state changed during discovery", nil);
                         return;
                     } else {
                         NSLog(@"ℹ️ Discovery running, no devices found yet");

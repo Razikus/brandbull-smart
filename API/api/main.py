@@ -442,45 +442,16 @@ async def list_devices(current_user: str = Depends(get_authenticated_user)) -> L
             name=item.get("name", None)
         ))
     return toRet
-# @app.get("/protected")
-# async def protected_route(current_user: str = Depends(get_authenticated_user)):
-#     productID = "1905532161226346496"
-#     macadress = "4055481e5d6b"
-#
-#     what = await heimanConnector.queryDevice(current_user, "1905532161226346496", "4055481e5d6b")
-#     print(what)
-#
-#     what2 = await heimanConnector.nameByDevice(current_user, "1905532161226346496", "4055481e5d6b")
-#     result = what2["result"][0]
-#     deviceID = result["id"]
-#     print(deviceID)
-#
-#     what3 = await heimanConnector.deviceList(current_user)
-#     print(what3)
-#
-#     what4 = await heimanConnector.getDeviceIDDetail(current_user, deviceID)
-#     print(what4)
-#
-#     print("BINDING")
-#     what5 = await heimanConnector.bind(current_user, deviceID)
-#     print(what5)
-#
-#     listing = await heimanConnector.deviceList(current_user)
-#     print(listing)
-#
-#     print("UNBINDING")
-#     what6 = await heimanConnector.unbind(current_user, deviceID)
-#     print(what6)
-#     listing2 = await heimanConnector.deviceList(current_user)
-#     print(listing2)
-#
-#
-#
-#
-#     return {
-#         "message": "Access granted to protected resource",
-#         "user": current_user
-#     }
+
+@app.delete("/account/delete")
+async def delete_account(current_user: str = Depends(get_authenticated_user)):
+    """Delete user account and all associated data"""
+    try:
+        result = await supadevices.delete_user_account(current_user, should_soft_delete=True)
+        return result
+    except Exception as e:
+        logger.error(f"Failed to delete account for user {current_user}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")
 
 
 
@@ -538,16 +509,25 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/")
 async def read_index():
     return FileResponse('static/index.html')
+
 @app.get("/privacy.html")
 async def privacy_page():
     return FileResponse('static/privacy.html')
+
+@app.get("/delete.html")
+async def delete_page():
+    return FileResponse('static/delete.html')
+
 @app.post("/internal/event", include_in_schema=False)
 async def internal_event(req: Request, event: EventPayload, background_tasks: BackgroundTasks):
     headerOf = req.headers.get("X-Internal-Secret", None)
     if headerOf != os.getenv("INTERNAL_SECRET"):
         raise HTTPException(status_code=403, detail="Forbidden")
+    
 
-    result = await redis_client.set(f"event_lock_{event.messageId}", "1", ex=60*10, nx=True)
+
+
+    result = await redis_client.set(f"event_lock_{event.user}_{event.messageId}", "1", ex=60*10, nx=True)
     print(result, flush=True)
     if result:
         print("PROCESSING EVENT", event)
@@ -583,7 +563,7 @@ async def internal_event(req: Request, event: EventPayload, background_tasks: Ba
             background_tasks.add_task(processEFlara, allTokens, device["uuid"], False)
         elif event.eventName == "SmokeCheckAlarm":
 
-            lockForRepeat = await redis_client.set(f"smoke_event_lock_{device['uuid']}", "1", ex=60*60, nx=True)
+            lockForRepeat = await redis_client.set(f"smoke_event_lock_{event.user}_{device['uuid']}", "1", ex=60*60, nx=True)
             print(lockForRepeat, flush=True)
             if lockForRepeat:
                 print("PROCESSING REAL EVENT", flush=True)

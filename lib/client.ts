@@ -205,6 +205,15 @@ export class DeviceApiClient {
     });
   }
 
+  async deleteAccount(): Promise<{
+    status: string;
+    detail: string;
+  }> {
+    return this.makeRequest('/account/delete', {
+      method: 'DELETE',
+    });
+  }
+
   async renameDevice(deviceUuid: string, request: DeviceRenameRequest): Promise<{
     status: string;
     detail: string;

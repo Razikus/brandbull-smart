@@ -49,6 +49,8 @@ PODS:
     - ExpoModulesCore
     - GoogleSignIn (~> 8.0)
     - React-Core
+  - ExpoAppleAuthentication (7.2.4):
+    - ExpoModulesCore
   - ExpoAsset (11.1.7):
     - ExpoModulesCore
   - ExpoBlur (14.1.5):
@@ -2216,6 +2218,7 @@ DEPENDENCIES:
   - EXNotifications (from `../node_modules/expo-notifications/ios`)
   - Expo (from `../node_modules/expo`)
   - "ExpoAdapterGoogleSignIn (from `../node_modules/@react-native-google-signin/google-signin/expo/ios`)"
+  - ExpoAppleAuthentication (from `../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
   - ExpoDevice (from `../node_modules/expo-device/ios`)
@@ -2346,6 +2349,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo"
   ExpoAdapterGoogleSignIn:
     :path: "../node_modules/@react-native-google-signin/google-signin/expo/ios"
+  ExpoAppleAuthentication:
+    :path: "../node_modules/expo-apple-authentication/ios"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
   ExpoBlur:
@@ -2541,6 +2546,7 @@ SPEC CHECKSUMS:
   EXNotifications: be5e949edf1d60b70e77178b81aa505298fadd07
   Expo: a64c53f1ebaa36c439a87874759b6690785e60a4
   ExpoAdapterGoogleSignIn: cde973fe0134b1c0204502eeae5ec701cc379a57
+  ExpoAppleAuthentication: 4d2e0c88a4463229760f1fbb9a937a810efb6863
   ExpoAsset: ef06e880126c375f580d4923fdd1cdf4ee6ee7d6
   ExpoBlur: 3c8885b9bf9eef4309041ec87adec48b5f1986a9
   ExpoDevice: 7082f03af1c588333ef1417d5aa8287081d94b24

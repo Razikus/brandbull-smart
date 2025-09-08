@@ -1,4 +1,5 @@
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,7 +16,6 @@ import {
   View
 } from 'react-native';
 import { supabase } from '../lib/supabase';
-
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground. When this is added, you will continue to receive
@@ -34,8 +34,8 @@ export default function Auth() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [appleLoading, setAppleLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
-
 
   React.useEffect(() => {
     GoogleSignin.configure({
@@ -69,39 +69,79 @@ export default function Auth() {
   }
 
   async function signInWithGoogle() {
-  setGoogleLoading(true);
-  
-  try {
-    await GoogleSignin.hasPlayServices();
-    const userInfo = await GoogleSignin.signIn();
+    setGoogleLoading(true);
     
-    if (userInfo.data?.idToken) {
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: userInfo.data.idToken,
-      });
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
       
-      if (error) {
-        Alert.alert('Błąd logowania', error.message);
+      if (userInfo.data?.idToken) {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: userInfo.data.idToken,
+        });
+        
+        if (error) {
+          Alert.alert('Błąd logowania', error.message);
+        }
+      } else {
+        throw new Error('Brak tokenu ID!');
       }
-    } else {
-      throw new Error('Brak tokenu ID!');
+    } catch (error) {
+      console.error(error);
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // Użytkownik anulował
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // Logowanie w toku
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Błąd', 'Google Play Services niedostępne');
+      } else {
+        Alert.alert('Błąd', 'Problem z logowaniem Google');
+      }
+    } finally {
+      setGoogleLoading(false);
     }
-  } catch (error) {
-    console.error(error);
-    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      // Użytkownik anulował
-    } else if (error.code === statusCodes.IN_PROGRESS) {
-      // Logowanie w toku
-    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      Alert.alert('Błąd', 'Google Play Services niedostępne');
-    } else {
-      Alert.alert('Błąd', 'Problem z logowaniem Google');
-    }
-  } finally {
-    setGoogleLoading(false);
   }
-}
+
+  async function signInWithApple() {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('Błąd', 'Apple Sign In dostępne tylko na iOS');
+      return;
+    }
+
+    setAppleLoading(true);
+    
+    try {
+      const appleCredential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (appleCredential.identityToken) {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: appleCredential.identityToken,
+        });
+
+        if (error) {
+          Alert.alert('Błąd logowania', error.message);
+        }
+      } else {
+        throw new Error('Brak tokenu Apple ID!');
+      }
+    } catch (error) {
+      console.error('Apple Sign In error:', error);
+      if (error.code === 'ERR_REQUEST_CANCELED') {
+        // Użytkownik anulował
+      } else {
+        Alert.alert('Błąd', 'Problem z logowaniem Apple');
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -159,10 +199,10 @@ export default function Auth() {
           <TouchableOpacity
             style={[
               styles.primaryButton,
-              (loading || googleLoading || !email || !password) && styles.disabledButton
+              (loading || googleLoading || appleLoading || !email || !password) && styles.disabledButton
             ]}
             onPress={isSignUp ? signUpWithEmail : signInWithEmail}
-            disabled={loading || googleLoading || !email || !password}
+            disabled={loading || googleLoading || appleLoading || !email || !password}
           >
             {loading ? (
               <View style={styles.loadingContainer}>
@@ -185,14 +225,34 @@ export default function Auth() {
             <View style={styles.dividerLine} />
           </View>
 
+          {/* Apple Sign In Button - tylko na iOS */}
+          {Platform.OS === 'ios' && isSignUp && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={8}
+              style={styles.appleButton}
+              onPress={signInWithApple}
+            />
+          )}
+          {Platform.OS === 'ios' && !isSignUp && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={8}
+              style={styles.appleButton}
+              onPress={signInWithApple}
+            />
+          )}
+
           {/* Google Sign In Button */}
           <TouchableOpacity
             style={[
               styles.googleButton,
-              (googleLoading || loading) && styles.disabledButton
+              (googleLoading || loading || appleLoading) && styles.disabledButton
             ]}
             onPress={signInWithGoogle}
-            disabled={googleLoading || loading}
+            disabled={googleLoading || loading || appleLoading}
           >
             {googleLoading ? (
               <View style={styles.loadingContainer}>
@@ -211,9 +271,9 @@ export default function Auth() {
 
           {/* Secondary Action Button */}
           <TouchableOpacity
-            style={[styles.secondaryButton, (loading || googleLoading) && styles.disabledButton]}
+            style={[styles.secondaryButton, (loading || googleLoading || appleLoading) && styles.disabledButton]}
             onPress={() => setIsSignUp(!isSignUp)}
-            disabled={loading || googleLoading}
+            disabled={loading || googleLoading || appleLoading}
           >
             <Text style={styles.secondaryButtonText}>
               {isSignUp ? "Masz już konto? Zaloguj się" : "Nie masz konta? Zarejestruj się"}
@@ -274,6 +334,22 @@ const styles = StyleSheet.create({
   formContainer: {
     paddingHorizontal: 30,
     paddingVertical: 20,
+  },
+
+  // Apple Button styles
+  appleButton: {
+    width: '100%',
+    height: 52,
+    marginBottom: 12,
+  },
+  appleIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  appleButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 
   // Google Button styles

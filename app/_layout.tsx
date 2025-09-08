@@ -36,8 +36,6 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const { session, loading } = useAuth();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });

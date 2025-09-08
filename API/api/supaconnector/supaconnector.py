@@ -378,3 +378,39 @@ class SupabaseDevicesClient:
         except Exception as e:
             logger.error(f"Failed to toggle eflara status for device {device_uuid}: {e}")
             raise
+
+    async def delete_user_account(self, user_id: str, should_soft_delete: bool = False) -> Dict[str, Any]:
+        """Delete a user account - related data will be automatically deleted by CASCADE"""
+        logger.info(f"Deleting user account {user_id}")
+        
+        try:
+            # Use Supabase Auth Admin API to delete user
+            # This will trigger CASCADE deletion of related data
+            auth_headers = {
+                "apikey": self.service_role_key,
+                "Authorization": f"Bearer {self.service_role_key}",
+                "Content-Type": "application/json"
+            }
+            
+            delete_body = {"should_soft_delete": should_soft_delete}
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.delete(
+                    f"{self.supabase_url}/auth/v1/admin/users/{user_id}",
+                    headers=auth_headers,
+                    json=delete_body
+                ) as response:
+                    
+                    if response.status >= 400:
+                        error_text = await response.text()
+                        raise Exception(f"Failed to delete user: {response.status} - {error_text}")
+                    
+                    logger.info(f"User {user_id} deleted successfully")
+                    return {
+                        "status": "success", 
+                        "detail": f"User account {user_id} deleted successfully"
+                    }
+            
+        except Exception as e:
+            logger.error(f"Failed to delete user account {user_id}: {e}")
+            raise
