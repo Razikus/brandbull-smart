@@ -9,6 +9,7 @@ export default {
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "usesAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "eu.razniewski.bbsmart",
       "icon": "./assets/logo.png",
@@ -76,7 +77,8 @@ export default {
           ],
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true
